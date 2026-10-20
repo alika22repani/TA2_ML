@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Prediksi Efisiensi BBM Mobil</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    :root { --ink:#1d2a33; --road:#2b3a45; --signal:#f2b632; --paper:#f6f7f8; }
+    body { background: var(--paper); color: var(--ink); font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+    .masthead { background: var(--road); color: #fff; padding: 2.5rem 0 2rem; border-bottom: 6px solid var(--signal); }
+    .masthead h1 { font-weight: 700; letter-spacing: -.01em; }
+    .masthead p { color: #c9d2d9; max-width: 60ch; margin-bottom: 0; }
+    .panel { background: #fff; border: 1px solid #dde2e6; border-radius: 6px; padding: 1.5rem; }
+    .btn-go { background: var(--signal); border-color: var(--signal); color: var(--ink); font-weight: 600; }
+    .btn-go:hover { background: #e0a51f; border-color: #e0a51f; color: var(--ink); }
+    .big { font-size: 3.2rem; font-weight: 700; line-height: 1; }
+    .eq { font-family: ui-monospace, Menlo, Consolas, monospace; background: #eef1f3; padding: .6rem .8rem; border-radius: 4px; display: inline-block; }
+    img { max-width: 100%; }
+  </style>
+</head>
+<body>
+  <header class="masthead">
+    <div class="container">
+      <h1>Seberapa irit mobil dengan bobot sekian?</h1>
+      <p>Regresi linear sederhana pada dataset Auto MPG: bobot kendaraan sebagai input, efisiensi bahan bakar sebagai hasil.</p>
+    </div>
+  </header>
+
+  <main class="container my-4">
+    <div class="row g-4">
+      <div class="col-lg-5">
+        <div class="panel">
+          <form method="post" novalidate>
+            <label for="weight" class="form-label fw-semibold">Bobot kendaraan</label>
+            <div class="input-group mb-3">
+              <input type="text" inputmode="decimal" class="form-control {{ 'is-invalid' if error }}" id="weight" name="weight"
+                     value="{{ form.weight }}" placeholder="contoh: 1200" required>
+              <select class="form-select" name="unit" style="max-width:7rem" aria-label="Satuan bobot">
+                <option value="kg" {{ 'selected' if form.unit == 'kg' }}>kg</option>
+                <option value="lbs" {{ 'selected' if form.unit == 'lbs' }}>lbs</option>
+              </select>
+              {% if error %}<div class="invalid-feedback">{{ error }}</div>{% endif %}
+            </div>
+            <button class="btn btn-go w-100" type="submit">Hitung efisiensi</button>
+          </form>
+
+          {% if result %}
+          <hr>
+          {% if result.negative %}
+            <div class="alert alert-warning mb-0">Bobot {{ result.kg }} kg ({{ result.lbs }} lbs) jauh di luar rentang data, sehingga model menghasilkan nilai yang tidak masuk akal.</div>
+          {% else %}
+            <div class="text-secondary small">Untuk bobot {{ result.kg }} kg ({{ result.lbs }} lbs)</div>
+            <div class="big mt-1">{{ result.mpg }} <span class="fs-5 fw-normal">mpg</span></div>
+            <div class="mt-2 fs-5">&asymp; {{ result.kml }} km/l</div>
+            {% if not result.in_range %}
+              <div class="alert alert-warning mt-3 mb-0 small">Bobot ini di luar rentang data latih ({{ (meta.weight_min / 2.20462)|round|int }}&ndash;{{ (meta.weight_max / 2.20462)|round|int }} kg). Hasil adalah ekstrapolasi, jadi kurang dapat diandalkan.</div>
+            {% endif %}
+          {% endif %}
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="col-lg-7">
+        <div class="panel">
+          <h2 class="h5">Tentang model</h2>
+          <p class="mb-2">Persamaan yang dipelajari model:</p>
+          <p><span class="eq">mpg = {{ '%.2f'|format(meta.intercept) }} {{ '-' if meta.coef < 0 else '+' }} {{ '%.5f'|format(meta.coef|abs) }} &times; bobot(lbs)</span></p>
+          <p>Setiap tambahan 1.000 lbs (sekitar 454 kg) menurunkan perkiraan efisiensi sekitar {{ '%.1f'|format(meta.coef|abs * 1000) }} mpg.</p>
+          <div class="row text-center g-2 my-3">
+            <div class="col-4"><div class="fw-bold fs-4">{{ '%.2f'|format(meta.r2) }}</div><div class="small text-secondary">R&sup2; (data uji)</div></div>
+            <div class="col-4"><div class="fw-bold fs-4">{{ '%.2f'|format(meta.rmse) }}</div><div class="small text-secondary">RMSE (mpg)</div></div>
+            <div class="col-4"><div class="fw-bold fs-4">{{ meta.n_train + meta.n_test }}</div><div class="small text-secondary">jumlah data</div></div>
+          </div>
+          <img src="{{ url_for('static', filename='scatter.png') }}" alt="Scatterplot bobot kendaraan terhadap mpg dengan garis regresi">
+          <p class="small text-secondary mt-3 mb-0">Bobot saja menjelaskan sebagian besar variasi, bukan seluruhnya. Tenaga mesin, tahun produksi, dan jenis kendaraan juga berpengaruh. Hasil adalah perkiraan, bukan angka pasti.</p>
+        </div>
+      </div>
+    </div>
+  </main>
+</body>
+</html>
